@@ -66,5 +66,3 @@ Refer to the script for the full list of payloads.
 ## Contributions
 Contributions are welcome! Feel free to fork this repository and submit pull requests.
 
-## License
-This project is licensed under the MIT License.
