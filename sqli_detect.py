@@ -123,7 +123,7 @@ def scan(url):
 
     # Summary of results
     if vulnerable:
-        print(Fore.GREEN + "[!!!] The target is VULNERABLE to SQL Injection.")
+        print(Fore.GREEN + "[!!!] The target might be VULNERABLE to SQL Injection.")
     else:
         print(Fore.RED + "[+] The target is NOT vulnerable to SQL Injection.")
 
