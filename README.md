@@ -30,7 +30,7 @@ pip install requests colorama
 ## Usage
 1. Clone the repository:
    ```bash
-   git clone https://github.com/aungsanoo-usa/sqli-detect.git
+   git clone https://github.com/aungsanoo-usa/sqli_detect.git
    cd sqli_detect
    ```
 2. Run the script:
